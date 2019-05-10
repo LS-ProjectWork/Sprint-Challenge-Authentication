@@ -2,12 +2,13 @@ const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const db = require('../database/dbConfig');
 
-const { authenticate } = require('../auth/authenticate');
+const { authorize } = require('../auth/authorization');
+const tokenService = require('../auth/tokenService');
 
 module.exports = server => {
   server.post('/api/register', register);
   server.post('/api/login', login);
-  server.get('/api/jokes', authenticate, getJokes);
+  server.get('/api/jokes', authorize, getJokes);
 };
 
 function register(req, res) {
@@ -24,7 +25,19 @@ function register(req, res) {
 }
 
 function login(req, res) {
-  // implement user login
+  const {username, password} = req.body
+
+  db('users')
+  .where({username})
+  .first()
+  .then(user => {
+    if(user && bcrypt.compareSync(password, user.password)) {
+
+      const token = tokenService.generateToken(user)
+      res.status(201).json({token})
+    }
+  })
+  .catch(err => console.log(err))
 }
 
 function getJokes(req, res) {
